@@ -1,0 +1,953 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام التدريب المتقدم | Training Tracker</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@300;400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-app.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+
+        const firebaseConfig = {
+            apiKey: "AIzaSyCMyzRclMg46HV0pNMA3uZ4_b7qJfwclss",
+            authDomain: "mofitness-4c62e.firebaseapp.com",
+            projectId: "mofitness-4c62e",
+            storageBucket: "mofitness-4c62e.firebasestorage.app",
+            messagingSenderId: "759128250588",
+            appId: "1:759128250588:web:a9944b46b5b65a600cbc19",
+            measurementId: "G-E6XHRSZ73N"
+        };
+
+        const app = initializeApp(firebaseConfig);
+        window.auth = getAuth(app);
+        window.db = getFirestore(app);
+        window.provider = new GoogleAuthProvider();
+        window.currentUser = null;
+    </script>
+
+    <style>
+        body { font-family: 'Tajawal', sans-serif; background-color: #f8fafc; color: #1e293b; }
+        .tab-content { display: none; animation: slideUp 0.3s ease-out; }
+        .tab-content.active { display: block; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .timer-progress { transition: stroke-dashoffset 1s linear; }
+        .card-hover:hover { transform: translateY(-2px); transition: all 0.2s; }
+        .custom-scroll::-webkit-scrollbar { width: 4px; }
+        .custom-scroll::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 10px; }
+        
+        /* Toast Notifications */
+        .toast { position: fixed; top: 20px; right: 20px; z-index: 9999; padding: 16px 24px; border-radius: 12px; box-shadow: 0 10px 40px rgba(0,0,0,0.2); animation: slideInRight 0.3s ease-out; max-width: 400px; }
+        .toast.success { background: linear-gradient(135deg, #10b981 0%, #059669 100%); color: white; }
+        .toast.error { background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%); color: white; }
+        .toast.warning { background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%); color: white; }
+        @keyframes slideInRight { from { transform: translateX(400px); opacity: 0; } to { transform: translateX(0); opacity: 1; } }
+        @keyframes slideOutRight { from { transform: translateX(0); opacity: 1; } to { transform: translateX(400px); opacity: 0; } }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col pb-20 sm:pb-0">
+
+    <!-- Toast Container -->
+    <div id="toastContainer"></div>
+
+    <!-- Edit All Exercises Modal -->
+    <div id="editAllModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+            <!-- Modal Header -->
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center">
+                <h2 class="text-2xl font-bold">✏️ تعديل جميع التمارين</h2>
+                <button onclick="closeEditAllModal()" class="text-white hover:text-gray-200 text-3xl font-bold">&times;</button>
+            </div>
+
+            <!-- Stepper -->
+            <div class="bg-gray-50 p-4 border-b">
+                <div class="flex justify-between items-center gap-2">
+                    <button id="stepBtn1" onclick="showEditStep(1)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-blue-600 text-white">Push</button>
+                    <button id="stepBtn2" onclick="showEditStep(2)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Pull</button>
+                    <button id="stepBtn3" onclick="showEditStep(3)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Legs</button>
+                    <button id="stepBtn4" onclick="showEditStep(4)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Upper</button>
+                    <button id="stepBtn5" onclick="showEditStep(5)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Arms</button>
+                </div>
+            </div>
+
+            <!-- Modal Body -->
+            <div class="flex-1 overflow-y-auto p-6">
+                <div id="editStepContent" class="space-y-4">
+                    <!-- Content will be injected here -->
+                </div>
+            </div>
+
+            <!-- Modal Footer -->
+            <div class="bg-gray-50 p-4 border-t flex gap-3">
+                <button onclick="closeEditAllModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-400">إلغاء</button>
+                <button onclick="saveAllExercises()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700">💾 حفظ جميع التعديلات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Auth Section -->
+    <div id="authSection" class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-blue-500 to-blue-700">
+        <div class="w-full max-w-md">
+            <div class="bg-white rounded-3xl shadow-2xl p-8 text-center">
+                <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-2xl flex items-center justify-center text-4xl font-black mx-auto mb-6 shadow-lg">💪</div>
+                <h1 class="text-3xl font-black mb-2">نظام التدريب المتقدم</h1>
+                <p class="text-gray-500 text-sm mb-8">سجل دخول لحفظ تقدمك وبياناتك</p>
+                
+                <button onclick="loginWithGoogle()" class="w-full bg-white text-gray-800 font-bold py-4 rounded-2xl flex items-center justify-center gap-4 transition-all border-2 border-gray-200 shadow-sm hover:shadow-lg hover:border-blue-500 active:scale-95">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24">
+                        <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/>
+                        <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/>
+                        <path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.07H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.93l3.66-2.84z"/>
+                        <path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"/>
+                    </svg>
+                    تسجيل الدخول عبر Google
+                </button>
+                
+                <p id="authError" class="text-red-500 text-sm font-bold mt-4 h-6"></p>
+                
+                <div class="mt-8 p-4 bg-blue-50 rounded-xl border border-blue-100">
+                    <p class="text-xs text-blue-700 leading-relaxed">💡 سيتم حفظ جميع بياناتك (الوجبات، التمارين، الأوزان) تلقائياً في حسابك</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Main App Section -->
+    <div id="appSection" class="hidden min-h-screen flex flex-col pb-20 sm:pb-0">
+    
+    <!-- Navigation -->
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+        <div class="max-w-6xl mx-auto px-4">
+            <div class="flex justify-between items-center h-16">
+                <span class="text-xl font-bold text-blue-600">نظامي المتكامل</span>
+                <div class="flex items-center space-x-reverse space-x-4">
+                    <div class="flex items-center gap-2">
+                        <img id="userAvatar" src="" class="w-8 h-8 rounded-full border-2 border-blue-200" />
+                        <span id="userName" class="text-sm font-bold text-gray-700"></span>
+                    </div>
+                    <button onclick="logout()" class="text-xs font-bold text-red-500 hover:text-red-700 px-3 py-1 rounded-lg hover:bg-red-50">خروج</button>
+                </div>
+            </div>
+            <div class="max-w-6xl mx-auto px-4 mt-3">
+                <div class="flex space-x-reverse space-x-2">
+                    <button onclick="switchTab('plan')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold bg-blue-50 text-blue-700" data-target="plan">الوجبات</button>
+                    <button onclick="switchTab('training')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-500" data-target="training">التدريب</button>
+                    <button onclick="switchTab('timer')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-500" data-target="timer">المؤقت</button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <main class="flex-grow container mx-auto px-4 py-6 max-w-5xl">
+
+        <!-- 1. MEAL PLAN (Retained from previous) -->
+        <div id="plan" class="tab-content active">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
+                <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="font-bold mb-3">💧 الماء والملح</h3>
+                    <p class="text-sm opacity-80">الماء: 5 لتر يومياً. الملح: 5 غرام موزعة. الصوديوم قبل التمرين ضروري.</p>
+                </div>
+                <div class="bg-blue-600 text-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="font-bold mb-3">💊 المكملات</h3>
+                    <p class="text-sm opacity-80">أوميغا 3، ملتي فيتامين صباحاً. كرياتين قبل التمرين. زنك قبل النوم.</p>
+                </div>
+                <div class="bg-emerald-600 text-white p-6 rounded-2xl shadow-lg">
+                    <h3 class="font-bold mb-3">🥗 التغذية</h3>
+                    <p class="text-sm opacity-80">التزم بميزان الأوزان لكل مكون لضمان الوصول لأفضل نتيجة.</p>
+                </div>
+            </div>
+            <div id="mealsContainer" class="space-y-4"></div>
+            
+            <button onclick="addMeal()" class="mt-6 w-full bg-blue-600 text-white py-2.5 text-sm rounded-xl font-bold hover:bg-blue-700 shadow-lg">➕ إضافة وجبة جديدة</button>
+        </div>
+
+        <!-- 2. TRAINING PLAN (New Enhanced Section) -->
+        <div id="training" class="tab-content">
+            <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
+                <h2 class="text-2xl font-bold">الخطة التدريبية</h2>
+                <div class="flex flex-wrap bg-gray-100 p-1 rounded-xl gap-1 justify-center">
+                    <button id="day1Btn" onclick="renderTrainingDay(1)" class="day-btn px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold bg-white shadow-sm">Push</button>
+                    <button id="day2Btn" onclick="renderTrainingDay(2)" class="day-btn px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold text-gray-500">Pull</button>
+                    <button id="day3Btn" onclick="renderTrainingDay(3)" class="day-btn px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold text-gray-500">Legs</button>
+                    <button id="day4Btn" onclick="renderTrainingDay(4)" class="day-btn px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold text-gray-500">Upper</button>
+                    <button id="day5Btn" onclick="renderTrainingDay(5)" class="day-btn px-2 sm:px-3 py-1.5 sm:py-2 rounded-lg text-[10px] sm:text-xs font-bold text-gray-500">Arms</button>
+                </div>
+            </div>
+
+            <div id="trainingList" class="space-y-4">
+                <!-- Exercises will be injected here -->
+            </div>
+            
+            <button onclick="addExercise()" class="mt-6 w-full bg-blue-600 text-white py-2.5 text-sm rounded-xl font-bold hover:bg-blue-700 shadow-lg">➕ إضافة تمرين جديد</button>
+            <button onclick="openEditAllModal()" class="mt-3 w-full bg-purple-600 text-white py-2.5 text-sm rounded-xl font-bold hover:bg-purple-700 shadow-lg">✏️ تعديل جميع التمارين</button>
+
+            <!-- Cardio Options -->
+            <div class="mt-10 bg-white p-6 rounded-2xl border border-gray-100 shadow-sm">
+                <h3 class="text-lg font-bold mb-4 flex items-center">🏃‍♂️ خيارات الكارديو (35 دقيقة)</h3>
+                <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="font-bold block">مشي منحدر</span> ميل 15، سرعة 5.5
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="font-bold block">Elliptical</span> مقاومة 10
+                    </div>
+                    <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
+                        <span class="font-bold block">جهاز الدرج</span> 75 درجة/دقيقة
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 3. TIMER -->
+        <div id="timer" class="tab-content">
+            <div class="max-w-2xl mx-auto py-10">
+                <!-- Timer Controls -->
+                <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
+                    <h3 class="text-lg font-bold mb-4 text-center">⏱️ ضبط المؤقت</h3>
+                    <div class="grid grid-cols-3 gap-4 mb-4">
+                        <div>
+                            <label class="block text-sm font-bold text-gray-600 mb-2 text-center">الدقائق</label>
+                            <input type="number" id="minutesInput" value="1" min="0" max="10" class="w-full text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-600 mb-2 text-center">الثواني</label>
+                            <input type="number" id="secondsInput" value="30" min="0" max="59" class="w-full text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-bold text-gray-600 mb-2 text-center">الجولات</label>
+                            <input type="number" id="setsInput" value="3" min="1" max="10" class="w-full text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                        </div>
+                    </div>
+                    <button onclick="applyTimerSettings()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">تطبيق الإعدادات</button>
+                </div>
+
+                <!-- Timer Display -->
+                <div class="bg-gradient-to-br from-blue-500 to-blue-700 p-8 rounded-2xl shadow-xl text-white text-center">
+                    <div class="mb-6">
+                        <p class="text-sm opacity-80 mb-2">وقت الراحة المتبقي</p>
+                        <div class="relative w-64 h-64 mx-auto mb-6">
+                            <svg class="w-full h-full transform -rotate-90">
+                                <circle cx="128" cy="128" r="120" stroke="rgba(255,255,255,0.2)" stroke-width="12" fill="none"></circle>
+                                <circle id="progressCircle" cx="128" cy="128" r="120" stroke="white" stroke-width="12" fill="none" stroke-dasharray="754" stroke-dashoffset="0" stroke-linecap="round" class="timer-progress"></circle>
+                            </svg>
+                            <div class="absolute inset-0 flex flex-col items-center justify-center">
+                                <span id="timeDisplay" class="text-7xl font-mono font-black">01:30</span>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="grid grid-cols-2 gap-4 mb-6 text-center">
+                        <div class="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
+                            <p class="text-sm opacity-80 mb-1">الجولة الحالية</p>
+                            <p class="text-3xl font-black" id="currentSet">1</p>
+                        </div>
+                        <div class="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
+                            <p class="text-sm opacity-80 mb-1">إجمالي الجولات</p>
+                            <p class="text-3xl font-black" id="totalSets">3</p>
+                        </div>
+                    </div>
+
+                    <div class="flex gap-4 justify-center">
+                        <button onclick="startTimer()" class="bg-white text-blue-600 px-10 py-4 rounded-2xl font-bold shadow-lg hover:bg-gray-50 text-lg">▶ ابدأ</button>
+                        <button onclick="pauseTimer()" class="bg-yellow-500 text-white px-10 py-4 rounded-2xl font-bold shadow-lg hover:bg-yellow-600 text-lg">⏸ إيقاف مؤقت</button>
+                        <button onclick="resetTimer()" class="bg-red-500 text-white px-10 py-4 rounded-2xl font-bold shadow-lg hover:bg-red-600 text-lg">⏹ إعادة</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+    </main>
+    
+    </div><!-- End appSection -->
+
+    <!-- App State and Data Plan -->
+    <!-- Chosen Palette: Blue/Slate Professional Fitness Theme -->
+    <!-- Application Structure Plan: Tabs for Navigation. Meals section based on prompt times. Training section built from image data with PR (Personal Record) tracking. -->
+    <!-- Visualization & Content Choices: Card-based UI for mobile responsiveness. Input fields for weights to satisfy the 'Record Weight' requirement. -->
+    <!-- CONFIRMATION: NO SVG graphics used except for the dynamic timer code. NO Mermaid JS used. -->
+
+    <script type="module">
+        import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-auth.js";
+        import { getFirestore, doc, setDoc, getDoc, onSnapshot, collection, query, where, orderBy, limit, getDocs } from "https://www.gstatic.com/firebasejs/11.1.0/firebase-firestore.js";
+        
+        const auth = window.auth;
+        const db = window.db;
+        const provider = window.provider;
+        let currentUser = null;
+        
+        /**
+         * ----------------------------------------------
+         * Query Builder Reference (Meals & Foods)
+         * ----------------------------------------------
+         * الأمثلة التالية جاهزة للاستخدام مع Firestore "معلّقة" (commented out)
+         * يمكن نسخها وتعديلها لإحضار الوجبات الحالية أو الأكل الحالي.
+         */
+        /*
+        // مثال: إحضار الوجبات المسجّلة لليوم الحالي (Last 10)
+        const todayISO = new Date().toISOString().split('T')[0];
+        const mealsQuery = query(
+            collection(db, 'users', currentUser.uid, 'data', 'mealsLog'),
+            where('date', '==', todayISO),
+            orderBy('createdAt', 'desc'),
+            limit(10)
+        );
+        const mealsSnapshot = await getDocs(mealsQuery);
+        const todaysMeals = mealsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+
+        // مثال: إحضار قائمة الأكل الحالية من مجموعة foods مرتبة بالوقت
+        const foodsQuery = query(
+            collection(db, 'users', currentUser.uid, 'data', 'foods'),
+            where('status', '==', 'current'),
+            orderBy('time', 'asc')
+        );
+        const foodsSnapshot = await getDocs(foodsQuery);
+        const currentFoods = foodsSnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
+        */
+        
+        // Auth Functions
+        window.loginWithGoogle = async () => {
+            const errorEl = document.getElementById('authError');
+            errorEl.innerText = "جاري الاتصال...";
+            try {
+                await signInWithPopup(auth, provider);
+            } catch (error) {
+                console.error("Auth Error:", error);
+                errorEl.innerText = "حدث خطأ: " + error.message;
+            }
+        };
+        
+        window.logout = () => signOut(auth);
+        
+        // Auth State Observer
+        onAuthStateChanged(auth, async (user) => {
+            const authSection = document.getElementById('authSection');
+            const appSection = document.getElementById('appSection');
+            
+            if (user) {
+                currentUser = user;
+                authSection.classList.add('hidden');
+                appSection.classList.remove('hidden');
+                document.getElementById('userName').innerText = user.displayName || "مستخدم";
+                if (user.photoURL) {
+                    document.getElementById('userAvatar').src = user.photoURL;
+                }
+                await loadUserData(user.uid);
+            } else {
+                currentUser = null;
+                authSection.classList.remove('hidden');
+                appSection.classList.add('hidden');
+            }
+        });
+        
+        // Load user data from Firestore
+        async function loadUserData(uid) {
+            // Load meals
+            const mealsRef = doc(db, 'users', uid, 'data', 'meals');
+            onSnapshot(mealsRef, (snap) => {
+                if (snap.exists()) {
+                    mealsData.length = 0;
+                    mealsData.push(...snap.data().list);
+                }
+                renderMeals();
+            });
+            
+            // Load training data
+            const trainingRef = doc(db, 'users', uid, 'data', 'training');
+            onSnapshot(trainingRef, (snap) => {
+                if (snap.exists()) {
+                    Object.assign(trainingData, snap.data());
+                }
+                renderTrainingDay(1);
+            });
+            
+            // Load PRs with live updates
+            const prsRef = doc(db, 'users', uid, 'data', 'prs');
+            onSnapshot(prsRef, (snap) => {
+                if (snap.exists()) {
+                    const data = snap.data() || {};
+
+                    // Backward compatibility: convert old shape { val, unit }
+                    Object.keys(data).forEach((key) => {
+                        const entry = data[key];
+                        if (!entry.history) {
+                            const defaultHistory = [];
+                            if (entry.val) {
+                                defaultHistory.push({
+                                    weight: entry.val,
+                                    unit: entry.unit || 'kg',
+                                    date: 'قديم'
+                                });
+                            }
+                            data[key] = { history: defaultHistory };
+                        }
+                    });
+
+                    userPRs = data;
+                } else {
+                    userPRs = {};
+                }
+
+                renderTrainingDay(window.currentTrainingDay || 1);
+            });
+        }
+        
+        // Save data to Firestore
+        async function saveData(type, data) {
+            if (!currentUser) return;
+            const ref = doc(db, 'users', currentUser.uid, 'data', type);
+            try {
+                await setDoc(ref, data);
+            } catch (e) {
+                console.error("Save Error:", e);
+            }
+        }
+        
+        let mealsData = [
+            { time: "07:00", title: "الإفطار", content: "3 بيضات، 30غ شوفان، 150 مل حليب، 100غ موز، 20غ زبدة فول سوداني.", supps: "أوميغا 3، ملتي فيتامين" },
+            { time: "11:30", title: "الوجبة 2", content: "115غ دجاج، 100غ أرز بسمتي، 100غ خضار.", supps: "" },
+            { time: "16:00", title: "سناك", content: "1 سكوب بروتين، 30غ شوفان، 10غ زبدة فول سوداني.", supps: "" },
+            { time: "17:45", title: "قبل التمرين", content: "كرياتين + 1غ ملح مع الماء.", supps: "كرياتين" },
+            { time: "20:30", title: "العشاء", content: "115غ دجاج، 100غ أرز بسمتي، 100غ خضار.", supps: "زنك قبل النوم" }
+        ];
+
+        const trainingData = {
+            day1: {
+                title: "يوم 1: Push Day",
+                exercises: [
+                    { name: "Machine Flat Bench Press", sets: "3", reps: "8,8,8", rest: 180, video: "https://www.youtube.com/watch?v=xxxxx" },
+                    { name: "Machine Incline Bench Press", sets: "3", reps: "12,12,12", rest: 180, video: "" },
+                    { name: "Machine Chest Fly", sets: "3", reps: "15,15,15", rest: 60, video: "" },
+                    { name: "Machine Shoulder Press", sets: "3", reps: "10,10,10", rest: 120, video: "" },
+                    { name: "Dumbbell Lateral Raises", sets: "3", reps: "12,12,12", rest: 90, video: "" },
+                    { name: "Rope Triceps Extensions", sets: "3", reps: "12,12,12", rest: 90, video: "" },
+                    { name: "V-Grip Triceps Pushdown", sets: "3", reps: "15,15,15", rest: 90, video: "" }
+                ]
+            },
+            day2: {
+                title: "يوم 2: Pull Day",
+                exercises: [
+                    { name: "Barbell Bent Over Rows", sets: "3", reps: "10,10,10", rest: 180, video: "" },
+                    { name: "Machine Lat Pulldown", sets: "3", reps: "12,12,12", rest: 180, video: "" },
+                    { name: "Cable Rope Pull Over", sets: "3", reps: "15,15,15", rest: 90, video: "" },
+                    { name: "Rope Facepulls", sets: "3", reps: "15,15,15", rest: 90, video: "" },
+                    { name: "Alternating Dumbbell Curls", sets: "2", reps: "12,12", rest: 90, video: "" },
+                    { name: "Rope Hammer Curls", sets: "2", reps: "15,15", rest: 90, video: "" },
+                    { name: "Dumbbell Shrugs", sets: "2", reps: "10,10", rest: 120, video: "" },
+                    { name: "E-Z Bar Reverse Grip Curl", sets: "2", reps: "15,15", rest: 90, video: "" }
+                ]
+            },
+            day3: {
+                title: "يوم 3: Legs Day",
+                exercises: [
+                    { name: "Leg Press or Hack Squats", sets: "3", reps: "10,10,10", rest: 180, video: "" },
+                    { name: "Barbell RDL", sets: "3", reps: "10,10,10", rest: 150, video: "" },
+                    { name: "Leg Extensions", sets: "2", reps: "12,12", rest: 60, video: "" },
+                    { name: "Seated Hamstring Curl", sets: "2", reps: "12,12", rest: 90, video: "" },
+                    { name: "Walking Lunges", sets: "2", reps: "15,15", rest: 90, video: "" },
+                    { name: "Standing Calf Raise Machine", sets: "2", reps: "8,8", rest: 90, video: "" },
+                    { name: "Seated Calf Raises", sets: "2", reps: "12,12", rest: 90, video: "" },
+                    { name: "Smit Machine Single Leg Squat", sets: "3", reps: "20,20,20", rest: 60, video: "" }
+                ]
+            },
+            day4: {
+                title: "يوم 4: Upper Day",
+                exercises: [
+                    { name: "Incline DB Press", sets: "3", reps: "10,10,10", rest: 180, video: "" },
+                    { name: "Supinated Grip Lat Pull Down", sets: "3", reps: "8,8,8", rest: 180, video: "" },
+                    { name: "Incline Barbell Press", sets: "2", reps: "10,10", rest: 150, video: "" },
+                    { name: "Close Grip Machine Row", sets: "3", reps: "15,15,15", rest: 150, video: "" },
+                    { name: "Machine Shoulder Press", sets: "2", reps: "10,10", rest: 120, video: "" },
+                    { name: "DB Side Lateral Raise", sets: "2", reps: "15,15", rest: 90, video: "" },
+                    { name: "Rope Cable Face Pulls", sets: "2", reps: "15,15", rest: 90, video: "" },
+                    { name: "Barbell Curl S/W Bar Tri Extensions", sets: "2", reps: "10,10", rest: 90, video: "" }
+                ]
+            },
+            day5: {
+                title: "يوم 5: Arms & Shoulders",
+                exercises: [
+                    { name: "Machine Flat Bench Press", sets: "3", reps: "8,8,8", rest: 180, video: "" },
+                    { name: "Machine Incline Bench Press", sets: "3", reps: "12,12,12", rest: 180, video: "" },
+                    { name: "Machine Chest Fly", sets: "3", reps: "15,15,15", rest: 60, video: "" },
+                    { name: "Machine Shoulder Press", sets: "3", reps: "10,10,10", rest: 120, video: "" },
+                    { name: "Dumbbell Lateral Raises", sets: "3", reps: "12,12,12", rest: 90, video: "" },
+                    { name: "Rope Triceps Extensions", sets: "3", reps: "12,12,12", rest: 90, video: "" },
+                    { name: "V-Grip Triceps Pushdown", sets: "3", reps: "15,15,15", rest: 90, video: "" }
+                ]
+            }
+        };
+
+        // Local Storage for PRs
+        let userPRs = JSON.parse(localStorage.getItem('userPRs')) || {};
+
+        window.switchTab = function(target) {
+            document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+            document.getElementById(target).classList.add('active');
+            
+            document.querySelectorAll('.nav-btn').forEach(b => {
+                b.classList.remove('bg-blue-50', 'text-blue-700');
+                b.classList.add('text-gray-500');
+                if(b.dataset.target === target) {
+                    b.classList.add('bg-blue-50', 'text-blue-700');
+                    b.classList.remove('text-gray-500');
+                }
+            });
+        }
+
+        window.renderMeals = function() {
+            const container = document.getElementById('mealsContainer');
+            container.innerHTML = mealsData.map((m, idx) => `
+                <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm flex flex-col sm:flex-row gap-4">
+                    <div class="sm:w-20 font-bold text-blue-600">${m.time}</div>
+                    <div class="flex-grow">
+                        <h4 class="font-bold text-lg mb-1">${m.title}</h4>
+                        <p class="text-sm text-gray-600">${m.content}</p>
+                        ${m.supps ? `<span class="inline-block mt-2 text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">💊 ${m.supps}</span>` : ''}
+                    </div>
+                    <div class="flex gap-2">
+                        <button onclick="editMeal(${idx})" class="text-blue-500 hover:text-blue-700 font-bold text-xs sm:text-sm px-2 py-1 rounded-lg hover:bg-blue-50">✏️ تعديل</button>
+                        <button onclick="deleteMeal(${idx})" class="text-red-500 hover:text-red-700 font-bold text-xs sm:text-sm px-2 py-1 rounded-lg hover:bg-red-50">🗑️ حذف</button>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        window.addMeal = () => {
+            const time = prompt("وقت الوجبة (مثال: 07:00):");
+            const title = prompt("اسم الوجبة:");
+            const content = prompt("محتوى الوجبة:");
+            const supps = prompt("المكملات (اختياري):") || "";
+            
+            if (time && title && content) {
+                mealsData.push({ time, title, content, supps });
+                renderMeals();
+                saveData('meals', { list: mealsData });
+                showToast('✅ تم إضافة الوجبة بنجاح!', 'success');
+            }
+        };
+        
+        window.editMeal = (idx) => {
+            const meal = mealsData[idx];
+            const time = prompt("وقت الوجبة:", meal.time);
+            const title = prompt("اسم الوجبة:", meal.title);
+            const content = prompt("محتوى الوجبة:", meal.content);
+            const supps = prompt("المكملات:", meal.supps);
+            
+            if (time && title && content) {
+                mealsData[idx] = { time, title, content, supps };
+                renderMeals();
+                saveData('meals', { list: mealsData });
+                showToast('✅ تم تعديل الوجبة بنجاح!', 'success');
+            }
+        };
+        
+        window.deleteMeal = (idx) => {
+            if (confirm("هل تريد حذف هذه الوجبة؟")) {
+                mealsData.splice(idx, 1);
+                renderMeals();
+                saveData('meals', { list: mealsData });
+                showToast('🗑️ تم حذف الوجبة', 'success');
+            }
+        };
+
+        window.renderTrainingDay = function(day) {
+            window.currentTrainingDay = day;
+            const dayKey = `day${day}`;
+            const data = trainingData[dayKey];
+            
+            // UI Toggle - Update all buttons
+            for(let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`day${i}Btn`);
+                if(btn) {
+                    if(i === day) {
+                        btn.className = "day-btn px-3 py-2 rounded-lg text-xs font-bold bg-white shadow-sm";
+                    } else {
+                        btn.className = "day-btn px-3 py-2 rounded-lg text-xs font-bold text-gray-500";
+                    }
+                }
+            }
+
+            const container = document.getElementById('trainingList');
+            container.innerHTML = data.exercises.map((ex, idx) => {
+                const prKey = `${dayKey}_${ex.name.replace(/\s+/g, '')}`;
+                const prData = userPRs[prKey] || { history: [] };
+                const history = prData.history || [];
+                
+                const historyHTML = history.length > 0 ? history.map((entry, i) => `
+                    <div class="flex items-center justify-between gap-2 bg-white p-2 rounded-lg text-xs border border-blue-100 ${i === 0 ? 'border-2 border-green-400' : ''}">
+                        <div class="flex-1 min-w-0">
+                            <p class="font-bold text-blue-900 text-xs sm:text-sm">${entry.weight} ${entry.unit}</p>
+                            <p class="text-gray-500 text-[10px] sm:text-xs truncate">${entry.date}</p>
+                        </div>
+                        <button onclick="deletePR('${prKey}', ${i})" class="text-red-500 hover:text-red-700 font-bold text-sm flex-shrink-0">🗑️</button>
+                    </div>
+                `).join('') : '<p class="text-xs text-gray-400 text-center py-2">لا يوجد سجل بعد</p>';
+                
+                return `
+                    <div class="bg-white p-5 rounded-2xl border border-gray-100 shadow-sm card-hover relative">
+                        <button onclick="deleteExercise('${dayKey}', ${idx})" class="absolute top-3 left-3 text-gray-400 hover:text-red-500 font-bold text-lg transition-colors">✕</button>
+                        <div class="flex flex-col sm:flex-row justify-between items-start gap-3 mb-4 pr-6">
+                            <div>
+                                <div class="flex items-center gap-2">
+                                    <h4 class="font-bold text-blue-900 text-base sm:text-lg">${ex.name}</h4>
+                                    ${ex.video ? `<a href="${ex.video}" target="_blank" class="text-red-600 hover:text-red-700 transition-colors" title="شرح التمرين">
+                                        <svg class="w-5 h-5" fill="currentColor" viewBox="0 0 24 24">
+                                            <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                                        </svg>
+                                    </a>` : ''}
+                                </div>
+                                <div class="flex flex-wrap gap-2 mt-2">
+                                    <span class="text-xs sm:text-sm font-bold text-blue-600 bg-blue-50 px-2 py-1 rounded-lg">📊 ${ex.sets} جولات</span>
+                                    <span class="text-xs sm:text-sm font-bold text-green-600 bg-green-50 px-2 py-1 rounded-lg">🔢 ${ex.reps} تكرار</span>
+                                    <span class="text-xs sm:text-sm font-bold text-orange-600 bg-orange-50 px-2 py-1 rounded-lg">⏱️ ${ex.rest}ث راحة</span>
+                                </div>
+                            </div>
+                            <div class="flex items-center">
+                                <button onclick="setTimer(${ex.rest}, ${ex.sets}); switchTab('timer')" class="px-3 py-1.5 text-xs sm:text-sm bg-blue-600 text-white rounded-lg font-bold hover:bg-blue-700 shadow-sm whitespace-nowrap">⏱️ بدء المؤقت</button>
+                            </div>
+                        </div>
+                        
+                        <div class="bg-gradient-to-br from-blue-50 to-indigo-50 p-4 rounded-xl border-2 border-blue-100">
+                            <label class="block text-xs sm:text-sm font-bold text-gray-800 mb-3">📈 سجل الأوزان</label>
+                            <div class="flex flex-col sm:flex-row gap-2 mb-3">
+                                <div class="flex gap-2 flex-1">
+                                    <input type="number" 
+                                           id="weight_${prKey}"
+                                           placeholder="الوزن" 
+                                           class="flex-1 bg-white border-2 border-blue-200 rounded-lg px-2 py-1.5 text-xs sm:text-sm focus:ring-2 focus:ring-blue-500 focus:border-blue-500 outline-none font-bold">
+                                    <select id="unit_${prKey}" 
+                                            class="bg-white border-2 border-blue-200 rounded-lg text-xs sm:text-sm px-2 outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-bold">
+                                        <option value="kg">KG</option>
+                                        <option value="lb">LB</option>
+                                    </select>
+                                </div>
+                                <button onclick="savePR('${prKey}', '${ex.name}')" 
+                                        class="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-1.5 rounded-lg text-xs sm:text-sm font-bold hover:from-green-600 hover:to-green-700 shadow-md transition-all w-full sm:w-auto">
+                                    ✓ حفظ
+                                </button>
+                            </div>
+                            <div id="history_${prKey}" class="space-y-1 max-h-32 overflow-y-auto custom-scroll">
+                                ${historyHTML}
+                            </div>
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.addExercise = () => {
+            const currentDay = window.currentTrainingDay || 1;
+            const dayKey = `day${currentDay}`;
+            
+            const name = prompt("اسم التمرين:");
+            const sets = prompt("عدد الجولات:", "3");
+            const reps = prompt("عدد التكرارات:", "10,10,10");
+            const rest = prompt("وقت الراحة (بالثواني):", "90");
+            const video = prompt("رابط فيديو يوتيوب (اختياري):") || "";
+            
+            if (name && sets && reps && rest) {
+                trainingData[dayKey].exercises.push({
+                    name,
+                    sets,
+                    reps,
+                    rest: parseInt(rest),
+                    video
+                });
+                renderTrainingDay(currentDay);
+                saveData('training', trainingData);
+                showToast('✅ تم إضافة التمرين بنجاح!', 'success');
+            }
+        };
+        
+        window.deleteExercise = (dayKey, idx) => {
+            if (confirm("هل تريد حذف هذا التمرين؟")) {
+                trainingData[dayKey].exercises.splice(idx, 1);
+                renderTrainingDay(window.currentTrainingDay || 1);
+                saveData('training', trainingData);
+            }
+        };
+        
+        window.savePR = function(key, exerciseName) {
+            const weightInput = document.getElementById(`weight_${key}`);
+            const unitSelect = document.getElementById(`unit_${key}`);
+            const val = weightInput.value;
+            const unit = unitSelect.value;
+            
+            if (!val || val === '') {
+                showToast('⚠️ الرجاء إدخال الوزن أولاً', 'warning');
+                return;
+            }
+            
+            // Initialize PR history if not exists
+            if (!userPRs[key]) {
+                userPRs[key] = { history: [] };
+            }
+            if (!userPRs[key].history) {
+                userPRs[key].history = [];
+            }
+            
+            // Add new entry to history
+            const timestamp = new Date().toLocaleString('ar-EG', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+            
+            userPRs[key].history.unshift({
+                weight: val,
+                unit: unit,
+                date: timestamp,
+                exerciseName: exerciseName
+            });
+            
+            // Keep only last 10 entries
+            if (userPRs[key].history.length > 10) {
+                userPRs[key].history = userPRs[key].history.slice(0, 10);
+            }
+            
+            saveData('prs', userPRs);
+            showToast(`✅ تم حفظ ${val} ${unit} بنجاح!`, 'success');
+            
+            // Clear input
+            weightInput.value = '';
+            
+            // Re-render to show updated history
+            renderTrainingDay(window.currentTrainingDay || 1);
+        }
+
+        window.deletePR = function(key, index) {
+            if (!userPRs[key] || !userPRs[key].history) return;
+            userPRs[key].history.splice(index, 1);
+            if (userPRs[key].history.length === 0) {
+                delete userPRs[key];
+            }
+            saveData('prs', userPRs);
+            showToast('🗑️ تم حذف الوزن من السجل', 'success');
+            renderTrainingDay(window.currentTrainingDay || 1);
+        }
+        
+        function showToast(message, type = 'success') {
+            const container = document.getElementById('toastContainer');
+            const toast = document.createElement('div');
+            toast.className = `toast ${type}`;
+            toast.innerHTML = `<div class="flex items-center gap-2"><span class="text-lg font-bold">${message}</span></div>`;
+            container.appendChild(toast);
+            
+            setTimeout(() => {
+                toast.style.animation = 'slideOutRight 0.3s ease-out';
+                setTimeout(() => toast.remove(), 300);
+            }, 3000);
+        }
+        
+        window.showToast = showToast;
+
+        // Edit All Exercises Modal
+        let editAllData = {};
+        let currentEditStep = 1;
+
+        window.openEditAllModal = function() {
+            // Clone current training data
+            editAllData = JSON.parse(JSON.stringify(trainingData));
+            currentEditStep = 1;
+            document.getElementById('editAllModal').classList.remove('hidden');
+            showEditStep(1);
+        }
+
+        window.closeEditAllModal = function() {
+            document.getElementById('editAllModal').classList.add('hidden');
+        }
+
+        window.showEditStep = function(step) {
+            currentEditStep = step;
+            const dayKey = `day${step}`;
+            const data = editAllData[dayKey];
+
+            // Update stepper buttons
+            for(let i = 1; i <= 5; i++) {
+                const btn = document.getElementById(`stepBtn${i}`);
+                if(i === step) {
+                    btn.className = "flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-blue-600 text-white";
+                } else {
+                    btn.className = "flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600";
+                }
+            }
+
+            // Render exercises for this day
+            const container = document.getElementById('editStepContent');
+            container.innerHTML = `
+                <h3 class="text-xl font-bold text-blue-900 mb-4">${data.title}</h3>
+                ${data.exercises.map((ex, idx) => `
+                    <div class="bg-gray-50 p-4 rounded-xl border-2 border-gray-200">
+                        <div class="flex justify-between items-start mb-3">
+                            <h4 class="font-bold text-gray-700">تمرين ${idx + 1}</h4>
+                            <button onclick="removeExerciseFromEdit('${dayKey}', ${idx})" class="text-red-500 hover:text-red-700 font-bold">✕ حذف</button>
+                        </div>
+                        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">اسم التمرين</label>
+                                <input type="text" value="${ex.name}" 
+                                       onchange="updateExerciseField('${dayKey}', ${idx}, 'name', this.value)"
+                                       class="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">رابط يوتيوب</label>
+                                <input type="text" value="${ex.video || ''}" 
+                                       onchange="updateExerciseField('${dayKey}', ${idx}, 'video', this.value)"
+                                       placeholder="https://www.youtube.com/watch?v=..."
+                                       class="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">عدد الجولات</label>
+                                <input type="text" value="${ex.sets}" 
+                                       onchange="updateExerciseField('${dayKey}', ${idx}, 'sets', this.value)"
+                                       class="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">التكرارات</label>
+                                <input type="text" value="${ex.reps}" 
+                                       onchange="updateExerciseField('${dayKey}', ${idx}, 'reps', this.value)"
+                                       placeholder="10,10,10"
+                                       class="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                            <div>
+                                <label class="block text-xs font-bold text-gray-600 mb-1">وقت الراحة (ثانية)</label>
+                                <input type="number" value="${ex.rest}" 
+                                       onchange="updateExerciseField('${dayKey}', ${idx}, 'rest', parseInt(this.value))"
+                                       class="w-full border-2 border-gray-300 rounded-lg px-3 py-2 text-sm focus:ring-2 focus:ring-blue-500 outline-none">
+                            </div>
+                        </div>
+                    </div>
+                `).join('')}
+                <button onclick="addExerciseToEdit('${dayKey}')" class="w-full bg-blue-500 text-white py-2 rounded-lg font-bold hover:bg-blue-600 mt-4">➕ إضافة تمرين جديد</button>
+            `;
+        }
+
+        window.updateExerciseField = function(dayKey, idx, field, value) {
+            editAllData[dayKey].exercises[idx][field] = value;
+        }
+
+        window.removeExerciseFromEdit = function(dayKey, idx) {
+            editAllData[dayKey].exercises.splice(idx, 1);
+            showEditStep(currentEditStep);
+        }
+
+        window.addExerciseToEdit = function(dayKey) {
+            editAllData[dayKey].exercises.push({
+                name: "تمرين جديد",
+                sets: "3",
+                reps: "10,10,10",
+                rest: 90,
+                video: ""
+            });
+            showEditStep(currentEditStep);
+        }
+
+        window.saveAllExercises = function() {
+            // Update main training data
+            Object.assign(trainingData, editAllData);
+            
+            // Save to Firestore
+            saveData('training', trainingData);
+            
+            // Close modal and refresh
+            closeEditAllModal();
+            renderTrainingDay(window.currentTrainingDay || 1);
+            
+            showToast('✅ تم حفظ جميع التعديلات بنجاح!', 'success');
+        }
+
+        // --- Timer Engine ---
+        let timerTime = 90;
+        let originalTime = 90;
+        let timerActive = false;
+        let interval;
+        let currentSet = 1;
+        let totalSets = 3;
+
+        window.setTimer = function(seconds, sets = 3) {
+            stopTimer();
+            timerTime = seconds;
+            originalTime = seconds;
+            totalSets = sets;
+            currentSet = 1;
+            document.getElementById('minutesInput').value = Math.floor(seconds / 60);
+            document.getElementById('secondsInput').value = seconds % 60;
+            document.getElementById('setsInput').value = sets;
+            updateTimerUI();
+        }
+
+        window.applyTimerSettings = function() {
+            const minutes = parseInt(document.getElementById('minutesInput').value) || 0;
+            const seconds = parseInt(document.getElementById('secondsInput').value) || 0;
+            const sets = parseInt(document.getElementById('setsInput').value) || 1;
+            const totalSeconds = (minutes * 60) + seconds;
+            setTimer(totalSeconds, sets);
+        }
+
+        function updateTimerUI() {
+            const m = Math.floor(timerTime / 60);
+            const s = timerTime % 60;
+            document.getElementById('timeDisplay').innerText = `${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
+            document.getElementById('currentSet').innerText = currentSet;
+            document.getElementById('totalSets').innerText = totalSets;
+            
+            const circle = document.getElementById('progressCircle');
+            const circumference = 754; 
+            const offset = circumference - (timerTime / originalTime) * circumference;
+            circle.style.strokeDashoffset = offset;
+        }
+
+        window.startTimer = function() {
+            if(timerActive) return;
+            timerActive = true;
+            interval = setInterval(() => {
+                timerTime--;
+                updateTimerUI();
+                if(timerTime <= 0) {
+                    stopTimer();
+                    if(currentSet < totalSets) {
+                        currentSet++;
+                        timerTime = originalTime;
+                        updateTimerUI();
+                        showToast(`انتهت الجولة ${currentSet - 1}! ابدأ الجولة ${currentSet} 💪`, 'success');
+                    } else {
+                        showToast("🎉 أحسنت! انتهيت من جميع الجولات!", 'success');
+                        currentSet = 1;
+                        updateTimerUI();
+                    }
+                }
+            }, 1000);
+        }
+
+        window.pauseTimer = function() {
+            stopTimer();
+        }
+
+        function stopTimer() {
+            clearInterval(interval);
+            timerActive = false;
+        }
+
+        window.resetTimer = function() {
+            stopTimer();
+            timerTime = originalTime;
+            updateTimerUI();
+        }
+
+        window.onload = () => {
+            renderMeals();
+            renderTrainingDay(1);
+        };
+    </script>
+</body>
+</html>
