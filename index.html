@@ -126,8 +126,16 @@
         </div>
     </div>
 
+    <!-- Loading Section -->
+    <div id="loadingSection" class="min-h-screen flex items-center justify-center bg-gray-50">
+        <div class="text-center">
+            <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+            <p class="text-gray-500 font-bold">جاري التحميل...</p>
+        </div>
+    </div>
+
     <!-- Auth Section -->
-    <div id="authSection" class="min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-blue-500 to-blue-700">
+    <div id="authSection" class="hidden min-h-screen flex items-center justify-center p-6 bg-gradient-to-br from-blue-500 to-blue-700">
         <div class="w-full max-w-md">
             <div class="bg-white rounded-3xl shadow-2xl p-8 text-center">
                 <div class="w-20 h-20 bg-gradient-to-br from-blue-500 to-blue-700 text-white rounded-2xl flex items-center justify-center text-4xl font-black mx-auto mb-6 shadow-lg">💪</div>
@@ -156,6 +164,17 @@
     <!-- Main App Section -->
     <div id="appSection" class="hidden min-h-screen flex flex-col pb-20 sm:pb-0">
     
+    <!-- Mobile Header -->
+    <header class="bg-white border-b border-gray-200 sticky top-0 z-50 block sm:hidden">
+        <div class="px-4 h-16 flex justify-between items-center">
+            <div class="flex items-center gap-2">
+                <img id="userAvatarMobile" src="" class="w-8 h-8 rounded-full border-2 border-blue-200" />
+                <span id="userNameMobile" class="text-sm font-bold text-gray-700"></span>
+            </div>
+            <button onclick="logout()" class="text-xs font-bold text-red-500 hover:text-red-700 px-3 py-1 rounded-lg bg-red-50">خروج</button>
+        </div>
+    </header>
+
     <!-- Navigation -->
     <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 hidden sm:block">
         <div class="max-w-6xl mx-auto px-4">
@@ -257,7 +276,7 @@
                         </div>
                     </div>
                     
-                     <div class="grid grid-cols-2 gap-4 mb-6 text-center hidden">
+                    <div class="grid grid-cols-2 gap-4 mb-6 text-center hidden">
                         <div class="bg-white/20 backdrop-blur-sm p-4 rounded-xl">
                             <p class="text-sm opacity-80 mb-1">الجولة الحالية</p>
                             <p class="text-3xl font-black" id="currentSet">1</p>
@@ -381,15 +400,27 @@
         onAuthStateChanged(auth, async (user) => {
             const authSection = document.getElementById('authSection');
             const appSection = document.getElementById('appSection');
+            const loadingSection = document.getElementById('loadingSection');
             
+            // Hide loading section in all cases after check
+            loadingSection.classList.add('hidden');
+
             if (user) {
                 currentUser = user;
                 authSection.classList.add('hidden');
                 appSection.classList.remove('hidden');
+                // Update Desktop UI
                 document.getElementById('userName').innerText = user.displayName || "مستخدم";
                 if (user.photoURL) {
                     document.getElementById('userAvatar').src = user.photoURL;
                 }
+
+                // Update Mobile UI
+                document.getElementById('userNameMobile').innerText = user.displayName || "مستخدم";
+                if (user.photoURL) {
+                    document.getElementById('userAvatarMobile').src = user.photoURL;
+                }
+                
                 await loadUserData(user.uid);
             } else {
                 currentUser = null;
