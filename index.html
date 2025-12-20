@@ -118,6 +118,10 @@
                     <label class="block text-sm font-bold text-gray-700 mb-1">المكملات (اختياري)</label>
                     <input type="text" id="mealSuppsInput" placeholder="مثال: أوميغا 3" class="w-full border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
                 </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">البدائل (اختياري)</label>
+                    <textarea id="mealAlternativesInput" rows="3" placeholder="بدائل الكربوهيدرات، الدهون، إلخ..." class="w-full border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold"></textarea>
+                </div>
             </div>
             <div class="bg-gray-50 p-4 border-t flex gap-3">
                 <button onclick="closeMealModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-400">إلغاء</button>
@@ -131,6 +135,24 @@
         <div class="text-center">
             <div class="w-16 h-16 border-4 border-blue-600 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
             <p class="text-gray-500 font-bold">جاري التحميل...</p>
+        </div>
+    </div>
+
+    <!-- Edit All Meals Modal -->
+    <div id="editAllMealsModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col max-h-[80vh]">
+            <div class="bg-gradient-to-r from-purple-600 to-purple-700 text-white p-6 flex justify-between items-center">
+                <h2 class="text-2xl font-bold">✏️ ترتيب الوجبات</h2>
+                <button onclick="closeEditAllMealsModal()" class="text-white hover:text-gray-200 text-3xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 overflow-y-auto custom-scroll flex-1">
+                <div id="editAllMealsList" class="space-y-3">
+                    <!-- Meals list will be injected here -->
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 border-t">
+                <button onclick="closeEditAllMealsModal()" class="w-full bg-purple-600 text-white py-3 rounded-xl font-bold hover:bg-purple-700">تم</button>
+            </div>
         </div>
     </div>
 
@@ -219,6 +241,7 @@
             <div id="mealsContainer" class="space-y-4"></div>
             
             <button onclick="openMealModal()" class="mt-6 w-full bg-blue-600 text-white py-2.5 text-sm rounded-xl font-bold hover:bg-blue-700 shadow-lg">➕ إضافة وجبة جديدة</button>
+            <button onclick="openEditAllMealsModal()" class="mt-3 w-full bg-purple-600 text-white py-2.5 text-sm rounded-xl font-bold hover:bg-purple-700 shadow-lg">✏️ تعديل ترتيب الوجبات</button>
         </div>
 
         <!-- 2. TRAINING PLAN (New Enhanced Section) -->
@@ -246,7 +269,7 @@
                 <h3 class="text-lg font-bold mb-4 flex items-center">🏃‍♂️ خيارات الكارديو (35 دقيقة)</h3>
                 <div class="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm">
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
-                        <span class="font-bold block">مشي منحدر</span> ميل 15، سرعة 5.5
+                        <span class="font-bold block">مشي منحدر (treadmill)</span> ميل 15، سرعة 5.5
                     </div>
                     <div class="p-3 bg-slate-50 rounded-xl border border-slate-100">
                         <span class="font-bold block">Elliptical</span> مقاومة 10
@@ -493,11 +516,34 @@
         }
         
         let mealsData = [
-            { time: "07:00", title: "الإفطار", content: "3 بيضات، 30غ شوفان، 150 مل حليب، 100غ موز، 20غ زبدة فول سوداني.", supps: "أوميغا 3، ملتي فيتامين" },
-            { time: "11:30", title: "الوجبة 2", content: "115غ دجاج، 100غ أرز بسمتي، 100غ خضار.", supps: "" },
-            { time: "16:00", title: "سناك", content: "1 سكوب بروتين، 30غ شوفان، 10غ زبدة فول سوداني.", supps: "" },
-            { time: "17:45", title: "قبل التمرين", content: "كرياتين + 1غ ملح مع الماء.", supps: "كرياتين" },
-            { time: "20:30", title: "العشاء", content: "115غ دجاج، 100غ أرز بسمتي، 100غ خضار.", supps: "زنك قبل النوم" }
+            { 
+                time: "07:00", 
+                title: "الوجبة 1 (الفطور)", 
+                content: "3 بيضات كاملة، 30 جم شوفان، 150–200 مل حليب خالي الدسم، 100 جم موز، 20 جم زبدة فول سوداني.", 
+                supps: "",
+                alternatives: "الكربوهيدرات:\n30 جم شوفان ⬅️ أو 1 توست بني + 1 توست بني (نصف كمية)\n100 جم موز ⬅️ أو تفاح ⬅️ أو 30 جم تمر\n\nالدهون:\n20 جم Peanut Butter ⬅️ أو 15 جم مكسرات (لوز / جوز)"
+            },
+            { 
+                time: "13:00", 
+                title: "الوجبة 2 (غداء)", 
+                content: "115 جم صدر دجاج (مطبوخ)، 100 جم أرز بسمتي (نيّ)، 100 جم خضار (سلطة / بروكلي / خيار).", 
+                supps: "",
+                alternatives: "بدائل البروتين:\n115 جم دجاج ⬅️ أو 145 جم لحم أحمر خالي دهون، سمك فيليه (بلطي / سالمون)، جمبري مشوي\n\nبدائل الكربوهيدرات:\n100 جم أرز ⬅️ أو 100 جم مكرونة شوفان، 400 جم بطاطس، 400 جم بطاطا حلوة\n\nالخضار:\nأي خضار مسموح ❌ ممنوع الجزر"
+            },
+            { 
+                time: "17:00", 
+                title: "الوجبة 3 (Snack / Protein Shake)", 
+                content: "1 سكوب Whey Protein، 30 جم شوفان، 10 جم زبدة فول سوداني.", 
+                supps: "",
+                alternatives: "الكربوهيدرات:\n30 جم شوفان ⬅️ أو 1.5 توست بني\n\nالدهون:\n10 جم Peanut Butter ⬅️ أو 8–10 جم مكسرات"
+            },
+            { 
+                time: "21:00", 
+                title: "الوجبة 4 (عشاء)", 
+                content: "115 جم صدر دجاج، 100 جم أرز بسمتي، 100 جم خضار.", 
+                supps: "",
+                alternatives: "نفس بدائل الوجبة 2 تمامًا (بروتين + كربوهيدرات + خضار)"
+            }
         ];
 
         const trainingData = {
@@ -602,6 +648,12 @@
                     <div class="flex-grow">
                         <h4 class="font-bold text-lg mb-1">${m.title}</h4>
                         <p class="text-sm text-gray-600">${m.content}</p>
+                        ${m.alternatives ? `
+                            <div class="bg-gray-50 p-3 rounded-xl border border-gray-200 mt-3">
+                                <span class="font-bold text-gray-600 block mb-1">🔁 البدائل:</span>
+                                <p class="text-sm text-gray-600 whitespace-pre-line leading-relaxed">${m.alternatives}</p>
+                            </div>
+                        ` : ''}
                         ${m.supps ? `<span class="inline-block mt-2 text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">💊 ${m.supps}</span>` : ''}
                     </div>
                     <div class="flex gap-2">
@@ -626,12 +678,14 @@
                 document.getElementById('mealTitleInput').value = meal.title;
                 document.getElementById('mealContentInput').value = meal.content;
                 document.getElementById('mealSuppsInput').value = meal.supps || "";
+                document.getElementById('mealAlternativesInput').value = meal.alternatives || "";
             } else {
                 titleEl.innerText = "🍽️ إضافة وجبة";
                 document.getElementById('mealTimeInput').value = "";
                 document.getElementById('mealTitleInput').value = "";
                 document.getElementById('mealContentInput').value = "";
                 document.getElementById('mealSuppsInput').value = "";
+                document.getElementById('mealAlternativesInput').value = "";
             }
             
             modal.classList.remove('hidden');
@@ -646,13 +700,14 @@
             const title = document.getElementById('mealTitleInput').value;
             const content = document.getElementById('mealContentInput').value;
             const supps = document.getElementById('mealSuppsInput').value;
+            const alternatives = document.getElementById('mealAlternativesInput').value;
 
             if (!time || !title || !content) {
                 showToast('⚠️ يرجى تعبئة جميع الحقول المطلوبة', 'warning');
                 return;
             }
 
-            const mealData = { time, title, content, supps };
+            const mealData = { time, title, content, supps, alternatives };
 
             if (currentMealIndex >= 0) {
                 mealsData[currentMealIndex] = mealData;
@@ -673,6 +728,47 @@
                 renderMeals();
                 saveData('meals', { list: mealsData });
                 showToast('🗑️ تم حذف الوجبة', 'success');
+            }
+        };
+
+        // Edit All Meals Modal Functions
+        window.openEditAllMealsModal = () => {
+            renderEditAllMealsList();
+            document.getElementById('editAllMealsModal').classList.remove('hidden');
+        };
+
+        window.closeEditAllMealsModal = () => {
+            document.getElementById('editAllMealsModal').classList.add('hidden');
+        };
+
+        window.renderEditAllMealsList = () => {
+            const container = document.getElementById('editAllMealsList');
+            container.innerHTML = mealsData.map((m, idx) => `
+                <div class="flex items-center justify-between bg-gray-50 p-3 rounded-xl border border-gray-200">
+                    <div class="flex items-center gap-3 overflow-hidden">
+                        <span class="font-bold text-blue-600 text-sm whitespace-nowrap">${m.time}</span>
+                        <span class="font-bold text-gray-700 text-sm truncate">${m.title}</span>
+                    </div>
+                    <div class="flex gap-1 flex-shrink-0">
+                        ${idx > 0 ? `<button onclick="moveMeal(${idx}, -1)" class="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-blue-50 text-blue-600 font-bold">⬆️</button>` : '<div class="w-8"></div>'}
+                        ${idx < mealsData.length - 1 ? `<button onclick="moveMeal(${idx}, 1)" class="w-8 h-8 flex items-center justify-center bg-white border border-gray-200 rounded-lg hover:bg-blue-50 text-blue-600 font-bold">⬇️</button>` : '<div class="w-8"></div>'}
+                    </div>
+                </div>
+            `).join('');
+        };
+
+        window.moveMeal = (idx, direction) => {
+            const newIdx = idx + direction;
+            if (newIdx >= 0 && newIdx < mealsData.length) {
+                const temp = mealsData[idx];
+                mealsData[idx] = mealsData[newIdx];
+                mealsData[newIdx] = temp;
+                
+                // Update both views
+                renderMeals();
+                renderEditAllMealsList();
+                
+                saveData('meals', { list: mealsData });
             }
         };
 
