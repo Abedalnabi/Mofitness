@@ -69,13 +69,13 @@
             </div>
 
             <!-- Stepper -->
-            <div class="bg-gray-50 p-4 border-b">
-                <div class="flex justify-between items-center gap-2">
-                    <button id="stepBtn1" onclick="showEditStep(1)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-blue-600 text-white">Push</button>
-                    <button id="stepBtn2" onclick="showEditStep(2)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Pull</button>
-                    <button id="stepBtn3" onclick="showEditStep(3)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Legs</button>
-                    <button id="stepBtn4" onclick="showEditStep(4)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Upper</button>
-                    <button id="stepBtn5" onclick="showEditStep(5)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600">Arms</button>
+            <div class="bg-gray-50 p-4 border-b overflow-x-auto">
+                <div class="flex justify-between items-center gap-2 min-w-max sm:min-w-0">
+                    <button id="stepBtn1" onclick="showEditStep(1)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-blue-600 text-white whitespace-nowrap">Push</button>
+                    <button id="stepBtn2" onclick="showEditStep(2)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600 whitespace-nowrap">Pull</button>
+                    <button id="stepBtn3" onclick="showEditStep(3)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600 whitespace-nowrap">Legs</button>
+                    <button id="stepBtn4" onclick="showEditStep(4)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600 whitespace-nowrap">Upper</button>
+                    <button id="stepBtn5" onclick="showEditStep(5)" class="flex-1 py-2 px-3 rounded-lg text-xs sm:text-sm font-bold bg-gray-300 text-gray-600 whitespace-nowrap">Arms</button>
                 </div>
             </div>
 
@@ -90,6 +90,38 @@
             <div class="bg-gray-50 p-4 border-t flex gap-3">
                 <button onclick="closeEditAllModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-400">إلغاء</button>
                 <button onclick="saveAllExercises()" class="flex-1 bg-green-600 text-white py-3 rounded-xl font-bold hover:bg-green-700">💾 حفظ جميع التعديلات</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Meal Edit Modal -->
+    <div id="mealModal" class="hidden fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+        <div class="bg-white rounded-2xl shadow-2xl w-full max-w-md overflow-hidden flex flex-col">
+            <div class="bg-gradient-to-r from-blue-600 to-blue-700 text-white p-6 flex justify-between items-center">
+                <h2 id="mealModalTitle" class="text-2xl font-bold">🍽️ إضافة وجبة</h2>
+                <button onclick="closeMealModal()" class="text-white hover:text-gray-200 text-3xl font-bold">&times;</button>
+            </div>
+            <div class="p-6 space-y-4">
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">وقت الوجبة</label>
+                    <input type="time" id="mealTimeInput" class="w-full border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">اسم الوجبة</label>
+                    <input type="text" id="mealTitleInput" placeholder="مثال: الإفطار" class="w-full border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">محتوى الوجبة</label>
+                    <textarea id="mealContentInput" rows="3" placeholder="تفاصيل الوجبة..." class="w-full border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold"></textarea>
+                </div>
+                <div>
+                    <label class="block text-sm font-bold text-gray-700 mb-1">المكملات (اختياري)</label>
+                    <input type="text" id="mealSuppsInput" placeholder="مثال: أوميغا 3" class="w-full border-2 border-gray-200 rounded-xl px-4 py-2 focus:ring-2 focus:ring-blue-500 outline-none font-bold">
+                </div>
+            </div>
+            <div class="bg-gray-50 p-4 border-t flex gap-3">
+                <button onclick="closeMealModal()" class="flex-1 bg-gray-300 text-gray-700 py-3 rounded-xl font-bold hover:bg-gray-400">إلغاء</button>
+                <button onclick="saveMeal()" class="flex-1 bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">💾 حفظ</button>
             </div>
         </div>
     </div>
@@ -125,7 +157,7 @@
     <div id="appSection" class="hidden min-h-screen flex flex-col pb-20 sm:pb-0">
     
     <!-- Navigation -->
-    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50">
+    <nav class="bg-white border-b border-gray-200 sticky top-0 z-50 hidden sm:block">
         <div class="max-w-6xl mx-auto px-4">
             <div class="flex justify-between items-center h-16">
                 <span class="text-xl font-bold text-blue-600">نظامي المتكامل</span>
@@ -154,11 +186,11 @@
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-lg">
                     <h3 class="font-bold mb-3">💧 الماء والملح</h3>
-                    <p class="text-sm opacity-80">الماء: 5 لتر يومياً. الملح: 5 غرام موزعة. الصوديوم قبل التمرين ضروري.</p>
+                    <p class="text-sm opacity-80">الماء: 5 لتر يومياً. الملح: 5 غرام موزعة. الصوديوم(ملح) 1 غرام قبل التمرين .</p>
                 </div>
                 <div class="bg-blue-600 text-white p-6 rounded-2xl shadow-lg">
                     <h3 class="font-bold mb-3">💊 المكملات</h3>
-                    <p class="text-sm opacity-80">أوميغا 3، ملتي فيتامين صباحاً. كرياتين قبل التمرين. زنك قبل النوم.</p>
+                    <p class="text-sm opacity-80"> أوميغا 3 و ملتي فيتامين حبتين صباحاً. كرياتين قبل التمرين 5غرام. زنك قبل النوم وسكوب واي بروتين بعد التمرين مباشرة </p>
                 </div>
                 <div class="bg-emerald-600 text-white p-6 rounded-2xl shadow-lg">
                     <h3 class="font-bold mb-3">🥗 التغذية</h3>
@@ -167,7 +199,7 @@
             </div>
             <div id="mealsContainer" class="space-y-4"></div>
             
-            <button onclick="addMeal()" class="mt-6 w-full bg-blue-600 text-white py-2.5 text-sm rounded-xl font-bold hover:bg-blue-700 shadow-lg">➕ إضافة وجبة جديدة</button>
+            <button onclick="openMealModal()" class="mt-6 w-full bg-blue-600 text-white py-2.5 text-sm rounded-xl font-bold hover:bg-blue-700 shadow-lg">➕ إضافة وجبة جديدة</button>
         </div>
 
         <!-- 2. TRAINING PLAN (New Enhanced Section) -->
@@ -213,18 +245,18 @@
                 <!-- Timer Controls -->
                 <div class="bg-white p-6 rounded-2xl border border-gray-100 shadow-sm mb-6">
                     <h3 class="text-lg font-bold mb-4 text-center">⏱️ ضبط المؤقت</h3>
-                    <div class="grid grid-cols-3 gap-4 mb-4">
+                    <div class="grid grid-cols-3 gap-2 sm:gap-4 mb-4">
                         <div>
                             <label class="block text-sm font-bold text-gray-600 mb-2 text-center">الدقائق</label>
-                            <input type="number" id="minutesInput" value="1" min="0" max="10" class="w-full text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="number" id="minutesInput" value="1" min="0" max="10" class="w-full text-center text-xl sm:text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-gray-600 mb-2 text-center">الثواني</label>
-                            <input type="number" id="secondsInput" value="30" min="0" max="59" class="w-full text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="number" id="secondsInput" value="30" min="0" max="59" class="w-full text-center text-xl sm:text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                         <div>
                             <label class="block text-sm font-bold text-gray-600 mb-2 text-center">الجولات</label>
-                            <input type="number" id="setsInput" value="3" min="1" max="10" class="w-full text-center text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
+                            <input type="number" id="setsInput" value="3" min="1" max="10" class="w-full text-center text-xl sm:text-2xl font-bold border-2 border-gray-200 rounded-xl py-3 focus:ring-2 focus:ring-blue-500 outline-none">
                         </div>
                     </div>
                     <button onclick="applyTimerSettings()" class="w-full bg-blue-600 text-white py-3 rounded-xl font-bold hover:bg-blue-700">تطبيق الإعدادات</button>
@@ -234,7 +266,7 @@
                 <div class="bg-gradient-to-br from-blue-500 to-blue-700 p-8 rounded-2xl shadow-xl text-white text-center">
                     <div class="mb-6">
                         <p class="text-sm opacity-80 mb-2">وقت الراحة المتبقي</p>
-                        <div class="relative w-64 h-64 mx-auto mb-6">
+                        <div class="relative w-full max-w-[16rem] aspect-square mx-auto mb-6">
                             <svg class="w-full h-full transform -rotate-90">
                                 <circle cx="128" cy="128" r="120" stroke="rgba(255,255,255,0.2)" stroke-width="12" fill="none"></circle>
                                 <circle id="progressCircle" cx="128" cy="128" r="120" stroke="white" stroke-width="12" fill="none" stroke-dasharray="754" stroke-dashoffset="0" stroke-linecap="round" class="timer-progress"></circle>
@@ -266,6 +298,24 @@
         </div>
 
     </main>
+
+    <!-- Mobile Bottom Navigation -->
+    <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden pb-safe">
+        <div class="flex justify-around items-center h-16">
+            <button onclick="switchTab('plan')" class="nav-btn-mobile flex flex-col items-center justify-center w-full h-full text-blue-600" data-target="plan">
+                <span class="text-xl mb-1">🥗</span>
+                <span class="text-[10px] font-bold">الوجبات</span>
+            </button>
+            <button onclick="switchTab('training')" class="nav-btn-mobile flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="training">
+                <span class="text-xl mb-1">💪</span>
+                <span class="text-[10px] font-bold">التدريب</span>
+            </button>
+            <button onclick="switchTab('timer')" class="nav-btn-mobile flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="timer">
+                <span class="text-xl mb-1">⏱️</span>
+                <span class="text-[10px] font-bold">المؤقت</span>
+            </button>
+        </div>
+    </nav>
     
     </div><!-- End appSection -->
 
@@ -492,12 +542,23 @@
             document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
             document.getElementById(target).classList.add('active');
             
+            // Desktop Nav Updates
             document.querySelectorAll('.nav-btn').forEach(b => {
                 b.classList.remove('bg-blue-50', 'text-blue-700');
                 b.classList.add('text-gray-500');
                 if(b.dataset.target === target) {
                     b.classList.add('bg-blue-50', 'text-blue-700');
                     b.classList.remove('text-gray-500');
+                }
+            });
+
+            // Mobile Nav Updates
+            document.querySelectorAll('.nav-btn-mobile').forEach(b => {
+                b.classList.remove('text-blue-600');
+                b.classList.add('text-gray-400');
+                if(b.dataset.target === target) {
+                    b.classList.add('text-blue-600');
+                    b.classList.remove('text-gray-400');
                 }
             });
         }
@@ -513,40 +574,66 @@
                         ${m.supps ? `<span class="inline-block mt-2 text-[10px] bg-yellow-100 text-yellow-700 px-2 py-0.5 rounded-full font-bold">💊 ${m.supps}</span>` : ''}
                     </div>
                     <div class="flex gap-2">
-                        <button onclick="editMeal(${idx})" class="text-blue-500 hover:text-blue-700 font-bold text-xs sm:text-sm px-2 py-1 rounded-lg hover:bg-blue-50">✏️ تعديل</button>
+                        <button onclick="openMealModal(${idx})" class="text-blue-500 hover:text-blue-700 font-bold text-xs sm:text-sm px-2 py-1 rounded-lg hover:bg-blue-50">✏️ تعديل</button>
                         <button onclick="deleteMeal(${idx})" class="text-red-500 hover:text-red-700 font-bold text-xs sm:text-sm px-2 py-1 rounded-lg hover:bg-red-50">🗑️ حذف</button>
                     </div>
                 </div>
             `).join('');
         }
         
-        window.addMeal = () => {
-            const time = prompt("وقت الوجبة (مثال: 07:00):");
-            const title = prompt("اسم الوجبة:");
-            const content = prompt("محتوى الوجبة:");
-            const supps = prompt("المكملات (اختياري):") || "";
+        let currentMealIndex = -1;
+
+        window.openMealModal = (idx = -1) => {
+            currentMealIndex = idx;
+            const modal = document.getElementById('mealModal');
+            const titleEl = document.getElementById('mealModalTitle');
             
-            if (time && title && content) {
-                mealsData.push({ time, title, content, supps });
-                renderMeals();
-                saveData('meals', { list: mealsData });
+            if (idx >= 0) {
+                const meal = mealsData[idx];
+                titleEl.innerText = "✏️ تعديل الوجبة";
+                document.getElementById('mealTimeInput').value = meal.time;
+                document.getElementById('mealTitleInput').value = meal.title;
+                document.getElementById('mealContentInput').value = meal.content;
+                document.getElementById('mealSuppsInput').value = meal.supps || "";
+            } else {
+                titleEl.innerText = "🍽️ إضافة وجبة";
+                document.getElementById('mealTimeInput').value = "";
+                document.getElementById('mealTitleInput').value = "";
+                document.getElementById('mealContentInput').value = "";
+                document.getElementById('mealSuppsInput').value = "";
+            }
+            
+            modal.classList.remove('hidden');
+        };
+
+        window.closeMealModal = () => {
+            document.getElementById('mealModal').classList.add('hidden');
+        };
+
+        window.saveMeal = () => {
+            const time = document.getElementById('mealTimeInput').value;
+            const title = document.getElementById('mealTitleInput').value;
+            const content = document.getElementById('mealContentInput').value;
+            const supps = document.getElementById('mealSuppsInput').value;
+
+            if (!time || !title || !content) {
+                showToast('⚠️ يرجى تعبئة جميع الحقول المطلوبة', 'warning');
+                return;
+            }
+
+            const mealData = { time, title, content, supps };
+
+            if (currentMealIndex >= 0) {
+                mealsData[currentMealIndex] = mealData;
+                showToast('✅ تم تعديل الوجبة بنجاح!', 'success');
+            } else {
+                mealsData.push(mealData);
                 showToast('✅ تم إضافة الوجبة بنجاح!', 'success');
             }
-        };
-        
-        window.editMeal = (idx) => {
-            const meal = mealsData[idx];
-            const time = prompt("وقت الوجبة:", meal.time);
-            const title = prompt("اسم الوجبة:", meal.title);
-            const content = prompt("محتوى الوجبة:", meal.content);
-            const supps = prompt("المكملات:", meal.supps);
-            
-            if (time && title && content) {
-                mealsData[idx] = { time, title, content, supps };
-                renderMeals();
-                saveData('meals', { list: mealsData });
-                showToast('✅ تم تعديل الوجبة بنجاح!', 'success');
-            }
+
+            renderMeals();
+            saveData('meals', { list: mealsData });
+            closeMealModal();
         };
         
         window.deleteMeal = (idx) => {
