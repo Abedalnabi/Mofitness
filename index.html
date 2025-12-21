@@ -212,8 +212,8 @@
             </div>
             <div class="max-w-6xl mx-auto px-4 mt-3">
                 <div class="flex space-x-reverse space-x-2">
-                    <button onclick="switchTab('plan')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold bg-blue-50 text-blue-700" data-target="plan">الوجبات</button>
-                    <button onclick="switchTab('training')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-500" data-target="training">التدريب</button>
+                    <button onclick="switchTab('plan')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-500" data-target="plan">الوجبات</button>
+                    <button onclick="switchTab('training')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold bg-blue-50 text-blue-700" data-target="training">التدريب</button>
                     <button onclick="switchTab('timer')" class="nav-btn px-4 py-2 rounded-xl text-sm font-bold text-gray-500" data-target="timer">المؤقت</button>
                 </div>
             </div>
@@ -223,7 +223,7 @@
     <main class="flex-grow container mx-auto px-4 py-6 max-w-5xl">
 
         <!-- 1. MEAL PLAN (Retained from previous) -->
-        <div id="plan" class="tab-content active">
+        <div id="plan" class="tab-content">
             <div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-6">
                 <div class="bg-indigo-900 text-white p-6 rounded-2xl shadow-lg">
                     <h3 class="font-bold mb-3">💧 الماء والملح</h3>
@@ -245,7 +245,7 @@
         </div>
 
         <!-- 2. TRAINING PLAN (New Enhanced Section) -->
-        <div id="training" class="tab-content">
+        <div id="training" class="tab-content active">
             <div class="flex flex-col sm:flex-row justify-between items-center mb-6 gap-4">
                 <h2 class="text-2xl font-bold">الخطة التدريبية</h2>
                 <div class="flex flex-wrap bg-gray-100 p-1 rounded-xl gap-1 justify-center">
@@ -344,11 +344,11 @@
     <!-- Mobile Bottom Navigation -->
     <nav class="fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-50 sm:hidden pb-safe">
         <div class="flex justify-around items-center h-16">
-            <button onclick="switchTab('plan')" class="nav-btn-mobile flex flex-col items-center justify-center w-full h-full text-blue-600" data-target="plan">
+            <button onclick="switchTab('plan')" class="nav-btn-mobile flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="plan">
                 <span class="text-xl mb-1">🥗</span>
                 <span class="text-[10px] font-bold">الوجبات</span>
             </button>
-            <button onclick="switchTab('training')" class="nav-btn-mobile flex flex-col items-center justify-center w-full h-full text-gray-400" data-target="training">
+            <button onclick="switchTab('training')" class="nav-btn-mobile flex flex-col items-center justify-center w-full h-full text-blue-600" data-target="training">
                 <span class="text-xl mb-1">💪</span>
                 <span class="text-[10px] font-bold">التدريب</span>
             </button>
