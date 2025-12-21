@@ -1098,12 +1098,78 @@
         }
 
         // --- Timer Engine ---
+        // --- Timer Engine ---
         let timerTime = 2100; // 35 minutes
         let originalTime = 2100;
         let timerActive = false;
         let interval;
         let currentSet = 1;
         let totalSets = 3;
+        let lastTimestamp = Date.now();
+
+        // Persistence Functions
+        function saveTimerState() {
+            const state = {
+                timerTime,
+                originalTime,
+                timerActive,
+                currentSet,
+                totalSets,
+                activeExerciseId,
+                lastTimestamp: Date.now()
+            };
+            localStorage.setItem('timerState', JSON.stringify(state));
+        }
+
+        function loadTimerState() {
+            const state = JSON.parse(localStorage.getItem('timerState'));
+            if (!state) return;
+
+            timerTime = state.timerTime;
+            originalTime = state.originalTime;
+            currentSet = state.currentSet;
+            totalSets = state.totalSets;
+            activeExerciseId = state.activeExerciseId;
+            
+            // If timer was active, calculate elapsed time
+            if (state.timerActive) {
+                const now = Date.now();
+                const elapsed = Math.floor((now - state.lastTimestamp) / 1000);
+                
+                if (elapsed > 0) {
+                    timerTime -= elapsed;
+                }
+
+                if (timerTime <= 0) {
+                    // Timer finished while away
+                    timerTime = 0;
+                    timerActive = false;
+                    // Handle completion logic if needed, for now just stop at 0
+                    if (currentSet < totalSets) {
+                        // Optionally auto-advance or just let user see it finished
+                        // Let's behave like it just finished
+                        currentSet++;
+                        timerTime = originalTime;
+                        showToast(`انتهت الجولة ${currentSet - 1} أثناء غيابك! ابدأ الجولة ${currentSet} 💪`, 'success');
+                    } else {
+                        showToast("🎉 انتهت جميع الجولات أثناء غيابك!", 'success');
+                        currentSet = 1;
+                        timerTime = originalTime;
+                    }
+                    saveTimerState();
+                } else {
+                    // Resume timer
+                    startTimer();
+                }
+            }
+            
+            // Update inputs to reflect loaded state
+            document.getElementById('minutesInput').value = Math.floor(originalTime / 60);
+            document.getElementById('secondsInput').value = originalTime % 60;
+            document.getElementById('setsInput').value = totalSets;
+            
+            updateTimerUI();
+        }
 
         window.setTimer = function(seconds, sets = 3) {
             stopTimer();
@@ -1114,6 +1180,7 @@
             document.getElementById('minutesInput').value = Math.floor(seconds / 60);
             document.getElementById('secondsInput').value = seconds % 60;
             document.getElementById('setsInput').value = sets;
+            saveTimerState();
             updateTimerUI();
         }
 
@@ -1168,20 +1235,34 @@
         window.startTimer = function() {
             if(timerActive) return;
             timerActive = true;
+            lastTimestamp = Date.now();
+            saveTimerState();
+            
             interval = setInterval(() => {
-                timerTime--;
-                updateTimerUI();
-                if(timerTime <= 0) {
-                    stopTimer();
-                    if(currentSet < totalSets) {
-                        currentSet++;
-                        timerTime = originalTime;
-                        updateTimerUI();
-                        showToast(`انتهت الجولة ${currentSet - 1}! ابدأ الجولة ${currentSet} 💪`, 'success');
-                    } else {
-                        showToast("🎉 أحسنت! انتهيت من جميع الجولات!", 'success');
-                        currentSet = 1;
-                        updateTimerUI();
+                const now = Date.now();
+                const delta = Math.floor((now - lastTimestamp) / 1000);
+                
+                if (delta >= 1) {
+                    timerTime -= delta;
+                    lastTimestamp = now;
+                    updateTimerUI();
+                    saveTimerState();
+                    
+                    if(timerTime <= 0) {
+                        stopTimer();
+                        if(currentSet < totalSets) {
+                            currentSet++;
+                            timerTime = originalTime;
+                            updateTimerUI();
+                            saveTimerState();
+                            showToast(`انتهت الجولة ${currentSet - 1}! ابدأ الجولة ${currentSet} 💪`, 'success');
+                        } else {
+                            showToast("🎉 أحسنت! انتهيت من جميع الجولات!", 'success');
+                            currentSet = 1;
+                            timerTime = originalTime; // Reset to start
+                            saveTimerState();
+                            updateTimerUI();
+                        }
                     }
                 }
             }, 1000);
@@ -1189,24 +1270,26 @@
 
         window.pauseTimer = function() {
             stopTimer();
+            saveTimerState();
         }
 
         function stopTimer() {
             clearInterval(interval);
             timerActive = false;
-            // Don't clear activeExerciseId here so we can see the stopped time or "Done" state if we want, 
-            // but for now let's keep it simple.
         }
 
         window.resetTimer = function() {
             stopTimer();
             timerTime = originalTime;
+            currentSet = 1;
+            saveTimerState();
             updateTimerUI();
         }
 
         window.onload = () => {
             renderMeals();
             renderTrainingDay(1);
+            loadTimerState();
         };
     </script>
 </body>
