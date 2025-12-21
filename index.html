@@ -425,13 +425,18 @@
             const appSection = document.getElementById('appSection');
             const loadingSection = document.getElementById('loadingSection');
             
-            // Hide loading section in all cases after check
-            loadingSection.classList.add('hidden');
-
             if (user) {
+                // Avoid re-initializing if same user
+                if (currentUser && currentUser.uid === user.uid) {
+                    currentUser = user;
+                    return;
+                }
+
                 currentUser = user;
+                loadingSection.classList.add('hidden');
                 authSection.classList.add('hidden');
                 appSection.classList.remove('hidden');
+                
                 // Update Desktop UI
                 document.getElementById('userName').innerText = user.displayName || "مستخدم";
                 if (user.photoURL) {
@@ -446,9 +451,15 @@
                 
                 await loadUserData(user.uid);
             } else {
-                currentUser = null;
-                authSection.classList.remove('hidden');
-                appSection.classList.add('hidden');
+                // Wait for auth to be ready to confirm it's not a transient state
+                await auth.authStateReady();
+                
+                if (!auth.currentUser) {
+                    currentUser = null;
+                    loadingSection.classList.add('hidden');
+                    authSection.classList.remove('hidden');
+                    appSection.classList.add('hidden');
+                }
             }
         });
         
